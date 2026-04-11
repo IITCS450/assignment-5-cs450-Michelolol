@@ -3,6 +3,8 @@
 #include "user.h"
 #include "uthread.h"
 
+#define MAX_THREADS 16
+#define STACK_SIZE  4096
 // TODO: Implement cooperative user-level threads.
 
 enum tstate { FREE, RUNNABLE, RUNNING, ZOMBIE };
@@ -38,6 +40,9 @@ void thread_stub(void) {
     // Mark as ZOMBIE and yield to the scheduler
     current_thread->state = ZOMBIE;
     thread_yield();
+    
+    //Safety net to prevent returning into the void
+    exit();
 }
 
 
@@ -69,7 +74,11 @@ tid_t thread_create(void (*fn)(void*), void *arg){
   
     // Set up the stack pointer and context
     char *sp = t->stack + STACK_SIZE;
-  
+
+    //fake return address to align the stack and prevent wild jumps
+    sp -= 4;
+    *(uint*)sp = 0;
+
     // Allocate space for struct context on the thread's stack
     sp -= sizeof(struct context);
     t->context = (struct context*)sp;
